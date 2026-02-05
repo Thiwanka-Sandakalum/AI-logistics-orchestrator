@@ -32,48 +32,6 @@ Unlike standard chatbots, Loomis **actively decides actions**—calculating ship
 
 ---
 
-## Architecture
-
-```mermaid
-flowchart LR
-    U[User] --> UI[Web UI / CLI]
-
-    subgraph BRAIN["Cognitive Layer (Python / LangGraph)"]
-        UI --> API[FastAPI / CLI Entry]
-        API --> ROUTER[Router Agent]
-        ROUTER --> STATE[State Machine]
-
-        STATE -->|Quote Intent| PRICING[Pricing Agent]
-        STATE -->|Validation| VALIDATOR[Validation Agent]
-        STATE -->|Tracking| TRACKING[Tracking Agent]
-
-        PRICING --> HITL{HITL Gate}
-        HITL -->|Approved| COMPLETE[Workflow Complete]
-        HITL -->|Rejected| CANCEL[Workflow Cancelled]
-    end
-
-    PRICING -->|MCP JSON-RPC| MCPCLIENT[MCP Client]
-    VALIDATOR -->|MCP JSON-RPC| MCPCLIENT
-    TRACKING -->|MCP JSON-RPC| MCPCLIENT
-
-    subgraph EXEC["Execution Layer (Go / MCP Server)"]
-        MCPCLIENT --> MCP[MCP Server]
-
-        MCP --> TOOLREG[Tool Registry]
-
-        TOOLREG --> QUOTE[get_shipping_quote]
-        TOOLREG --> ADDR[validate_address]
-        TOOLREG --> STATUS[get_tracking_status]
-
-        QUOTE --> DHL[DHL Adapter (Mock)]
-        ADDR --> MAPS[Maps / Geocoding (Mock)]
-        STATUS --> TRACKSIM[Tracking Simulator]
-
-        QUOTE --> CACHE[Redis Cache]
-        QUOTE --> DB[(PostgreSQL)]
-    end
-```
-
 **Key Principles:**
 
 * **Brain (Python)**: AI reasoning, intent detection, workflow orchestration
