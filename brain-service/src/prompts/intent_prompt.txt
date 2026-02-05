@@ -1,0 +1,5 @@
+Classify the user's intent from the following message:
+"{message}"
+
+Possible intents: greeting, asking_information, clarification, comparison, thanks_closing, unknown
+Respond with intent and confidence (0-1).
