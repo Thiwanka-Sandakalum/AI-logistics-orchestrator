@@ -1,20 +1,6 @@
 # Loomis: Agentic Logistics & Shipping Orchestrator (MVP)
 
-> **Portfolio Showcase Project** – Autonomous AI-driven logistics orchestrator combining Python, Go, and Agentic Workflows. Designed for global shipping workflows with Human-in-the-Loop governance.
-
----
-
-## Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Architecture](#architecture)
-3. [Technology Stack](#technology-stack)
-4. [Folder Structure](#folder-structure)
-5. [Core Components](#core-components)
-6. [Interaction Flow](#interaction-flow)
-7. [Setup & Run Instructions](#setup--run-instructions)
-8. [Business Value](#business-value)
-9. [Future Enhancements](#future-enhancements)
+>  Autonomous AI-driven logistics orchestrator combining Python, Go, and Agentic Workflows. Designed for global shipping workflows with Human-in-the-Loop governance.
 
 ---
 
@@ -49,7 +35,6 @@ Unlike standard chatbots, Loomis **actively decides actions**—calculating ship
 | AI Framework     | LangGraph       | Stateful agent workflows                 |
 | Validation       | Pydantic        | Structured input/output                  |
 | Backend          | Go (Golang)     | High-performance execution & tool server |
-| Web UI           | React / Next.js | User interaction & HITL modal            |
 | Protocol         | MCP / JSON-RPC  | Python → Go communication                |
 | Cache            | Redis           | Quote caching                            |
 | Database         | PostgreSQL      | Persistent session & quote storage       |
@@ -57,28 +42,6 @@ Unlike standard chatbots, Loomis **actively decides actions**—calculating ship
 | Cloud (optional) | Terraform       | Deploy infrastructure to AWS/GCP         |
 
 ---
-
-## Folder Structure
-
-```plaintext
-/loomis-logistics
-├── /brain-service                  # Python Cognitive Layer
-│   ├── main.py
-│   ├── graph.py
-│   ├── /agents
-│   └── /schemas
-├── /execution-server               # Go Execution Layer
-│   ├── main.go
-│   ├── /internal
-│   └── /tools
-├── /frontend                       # UI for MVP
-├── /infrastructure                 # Docker, Redis, Terraform
-├── /docs                            # Architecture & Sequence diagrams
-└── README.md                        # Root README
-```
-
----
-
 ## Core Components
 
 | Component            | Description                                                              |
@@ -109,53 +72,7 @@ Unlike standard chatbots, Loomis **actively decides actions**—calculating ship
 
 ---
 
-## Setup & Run Instructions (MVP)
-
-### Prerequisites
-
-* Python 3.10+
-* Go 1.21+
-* Node.js 20+
-* Docker & Docker Compose
-* Redis & PostgreSQL
-
-### Steps
-
-1. **Start Docker containers**
-
-```bash
-docker-compose up --build
-```
-
-2. **Run Brain Service**
-
-```bash
-cd brain-service
-pip install -r requirements.txt
-python main.py
-```
-
-3. **Run Execution Server**
-
-```bash
-cd execution-server
-go run main.go
-```
-
-4. **Run Frontend**
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-5. **Access UI**
-   Open `http://localhost:3000` and test quote workflow
-
----
-
-## Business Value (Interview Talking Points)
+## Business Value 
 
 * Reduces manual customer support (AI automates quote & validation)
 * Safe execution: AI **never touches API keys** directly
