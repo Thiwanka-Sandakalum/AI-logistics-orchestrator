@@ -1,4 +1,1 @@
-pydantic
-httpx
-langgraph
-fastapi
+# Python dependencies (LangGraph, FastAPI, Pydantic)
