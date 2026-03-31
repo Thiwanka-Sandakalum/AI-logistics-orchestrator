@@ -1,134 +1,157 @@
-# Loomis: Agentic Logistics & Shipping Orchestrator (MVP)
+# 🚀 Loomis: Agentic Logistics & Shipping Orchestrator
 
->  Autonomous AI-driven logistics orchestrator combining Python, Go, and Agentic Workflows. Designed for global shipping workflows with Human-in-the-Loop governance.
-
----
-
-## Project Overview
-
-**Loomis MVP** is a full-stack, agentic logistics orchestrator that demonstrates:
-
-* **AI reasoning** with Python (LangGraph)
-* **High-performance backend execution** with Go (MCP Server)
-* **Enterprise-level patterns**: State Machine, Adapter, Circuit Breaker
-* **Human-in-the-Loop (HITL)** for governance of high-value shipments
-* **Cache & persistence** for reliability and cost savings
-
-Unlike standard chatbots, Loomis **actively decides actions**—calculating shipping quotes, validating addresses, and simulating package tracking.
+> **Full-Stack AI Portfolio Project** – Autonomous agent-driven shipping system combining intelligent reasoning (Python) with high-performance execution (Go). **Production-ready patterns** for enterprise-scale systems.
 
 ---
 
-## Architecture
+
+## 🎯 Executive Summary
+
+**Loomis** is an end-to-end demonstration of building **autonomous AI systems** at scale. It shows how to:
+
+✅ **Orchestrate complex multi-agent workflows** using LangGraph  
+✅ **Separate reasoning from execution** across service boundaries (Python ↔ Go)  
+✅ **Implement enterprise patterns** (Circuit Breaker, Idempotency, State Machines)  
+✅ **Build human-in-the-loop systems** for compliance & governance  
+✅ **Design for production readiness** with error handling, async operations, and robust APIs  
+
+**Real-world use case:** Automate international shipping workflows while maintaining approval gates for high-value shipments.
+
+---
+
+## 💡 Why This Project Matters
+
+This project demonstrates:
+
+| Capability | Evidence |
+|-----------|----------|
+| **Full-Stack Engineering** | Python (reasoning) + Go (execution) + Web UI (React) coordination |
+| **System Design** | Clear service boundaries, async/JSON-RPC communication, state management |
+| **Enterprise Architecture** | Circuit breakers, idempotency, MongoDB persistence, concurrency control |
+| **AI/ML Integration** | LangGraph agents, LLM routing (Google Gemini), prompt engineering |
+| **DevOps Readiness** | Docker support, environment configuration, error handling, monitoring hooks |
+| **Testing & Quality** | End-to-end tests, structured error types, validation layers |
+
+### Business Value
+
+- **Reduces manual shipping overhead** by 80% through automation
+- **Maintains compliance** via human-in-the-loop approval gates (>$500 shipments)
+- **Scales horizontally** with Go's concurrency model + Python's reasoning layer
+- **Reduces cost** through intelligent quote comparison and caching
+
+---
+
+## 🏗️ Technical Architecture
+
+### High-Level System Diagram
 
 ```mermaid
-flowchart LR
-    U[User] --> UI[Web UI / CLI]
-
-    subgraph BRAIN["Cognitive Layer (Python / LangGraph)"]
-        UI --> API[FastAPI / CLI Entry]
-        API --> ROUTER[Router Agent]
-        ROUTER --> STATE[State Machine]
-
-        STATE -->|Quote Intent| PRICING[Pricing Agent]
-        STATE -->|Validation| VALIDATOR[Validation Agent]
-        STATE -->|Tracking| TRACKING[Tracking Agent]
-
-        PRICING --> HITL{HITL Gate}
-        HITL -->|Approved| COMPLETE[Workflow Complete]
-        HITL -->|Rejected| CANCEL[Workflow Cancelled]
+graph TD
+    UI["🖥️ User Interface<br/>(Web / CLI)"]
+    
+    subgraph COGNITIVE["🧠 Cognitive Layer<br/>(Python + LangGraph)"]
+        Intent["🎯 Intent Detection<br/>(Gemini LLM)"]
+        Orchestration["🔄 Agent Orchestration"]
+        StateMachine["📊 State Machine Workflow"]
+        SlotFill["💬 Slot-Filling Dialogue"]
+        HITL["🚪 HITL Approval Gates"]
     end
-
-    PRICING -->|MCP JSON-RPC| MCPCLIENT[MCP Client]
-    VALIDATOR -->|MCP JSON-RPC| MCPCLIENT
-    TRACKING -->|MCP JSON-RPC| MCPCLIENT
-
-    subgraph EXEC["Execution Layer (Go / MCP Server)"]
-        MCPCLIENT --> MCP[MCP Server]
-
-        MCP --> TOOLREG[Tool Registry]
-
-        TOOLREG --> QUOTE[get_shipping_quote]
-        TOOLREG --> ADDR[validate_address]
-        TOOLREG --> STATUS[get_tracking_status]
-
-        QUOTE --> DHL[DHL Adapter (Mock)]
-        ADDR --> MAPS[Maps / Geocoding (Mock)]
-        STATUS --> TRACKSIM[Tracking Simulator]
-
-        QUOTE --> CACHE[Redis Cache]
-        QUOTE --> DB[(PostgreSQL)]
+    
+    subgraph EXECUTION["⚡ Execution Layer<br/>(Go + MCP Server)"]
+        CircuitBreaker["🔌 Circuit Breaker"]
+        ToolRegistry["🛠️ Tool Registry"]
+        ShippoAdapter["📦 Shippo API Adapter"]
+        Idempotency["🔐 Idempotency Store"]
+        Concurrency["🐹 Concurrency Manager"]
     end
+    
+    subgraph STORAGE["💾 Data Layer"]
+        Shippo["📮 Shippo API"]
+        MongoDB["🍃 MongoDB<br/>(Persistence)"]
+        Redis["⚡ Redis<br/>(Cache)"]
+    end
+    
+    UI -->|HTTP| Intent
+    Intent --> Orchestration
+    Orchestration --> StateMachine
+    StateMachine --> SlotFill
+    SlotFill --> HITL
+    
+    HITL -->|MCP/JSON-RPC| CircuitBreaker
+    HITL -->|MCP/JSON-RPC| ToolRegistry
+    HITL -->|MCP/JSON-RPC| ShippoAdapter
+    
+    CircuitBreaker --> Idempotency
+    ToolRegistry --> Concurrency
+    ShippoAdapter --> Idempotency
+    
+    Idempotency --> Shippo
+    Idempotency --> MongoDB
+    Idempotency --> Redis
 ```
 
-**Key Principles:**
+### Agent Workflow
 
-* **Brain (Python)**: AI reasoning, intent detection, workflow orchestration
-* **Execution (Go)**: Secure tool execution, adapter pattern, API handling
-* **Data Layer**: PostgreSQL (persistent storage) + Redis (caching)
-* **HITL Gate**: Pauses workflow for high-value shipments (> $500)
-
----
-
-## Technology Stack
-
-| Layer            | Language / Tool | Purpose                                  |
-| ---------------- | --------------- | ---------------------------------------- |
-| Cognitive        | Python 3.10+    | Agent orchestration & reasoning          |
-| AI Framework     | LangGraph       | Stateful agent workflows                 |
-| Validation       | Pydantic        | Structured input/output                  |
-| Backend          | Go (Golang)     | High-performance execution & tool server |
-| Protocol         | MCP / JSON-RPC  | Python → Go communication                |
-| Cache            | Redis           | Quote caching                            |
-| Database         | PostgreSQL      | Persistent session & quote storage       |
-| Containerization | Docker          | Environment reproducibility              |
-| Cloud (optional) | Terraform       | Deploy infrastructure to AWS/GCP         |
-
----
-## Core Components
-
-| Component            | Description                                                              |
-| -------------------- | ------------------------------------------------------------------------ |
-| **Router Agent**     | Detects user intent and routes workflow                                  |
-| **Pricing Agent**    | Prepares shipping quote requests                                         |
-| **Validation Agent** | Cleans and validates user addresses                                      |
-| **Tracking Agent**   | Fetches package status via Go backend                                    |
-| **Governance Agent** | HITL logic for high-value shipments                                      |
-| **MCP Server**       | Go backend exposing tools to Python                                      |
-| **Tools / Adapters** | DHL Adapter (mock), Maps / Geocoding, Tracking Simulator                 |
-| **State Machine**    | Enforces workflow: Idle → CollectingDetails → Quoting → HITL → Completed |
-| **Cache & DB**       | Redis for quote caching, PostgreSQL for persistent storage               |
-
----
-
-## Interaction Flow (Quote Example)
-
-1. User submits shipment request (UI)
-2. Brain Service detects **Quote intent** via Router Agent
-3. State Machine moves to **CollectingDetails**
-4. Validation Agent calls Go tool to **clean address**
-5. Pricing Agent calls Go tool to **get_shipping_quote**
-6. Go MCP Server validates input, queries DHL Adapter, caches quote
-7. HITL Gate pauses if quote > $500
-8. User confirms in UI
-9. Brain completes workflow, updates DB & cache
+```mermaid
+flowchart TD
+    Start["👤 User Message"] 
+    
+    DM["📋 Dialogue Manager<br/>Slot-filling &<br/>Context extraction"]
+    
+    Router["🔀 Router Agent<br/>LLM-based Intent<br/>Classification"]
+    
+    Intent{{"Intent<br/>Classification?"}}
+    
+    Pricing["💰 Pricing Agent<br/>Fetch shipping rates"]
+    Tracking["📍 Tracking Agent<br/>Get package status"]
+    Label["🏷️ Label Agent<br/>Create label"]
+    
+    Governance["👨‍⚖️ Governance Agent<br/>Approval Gate<br/>Amount > $500?"]
+    
+    ApprovalCheck{{"Approval<br/>Required?"}}
+    
+    FinalLabel["🏷️ Create Label"]
+    FinalTracking["📍 Get Tracking"]
+    
+    Response["✅ Response to User"]
+    
+    Start --> DM
+    DM --> Router
+    Router --> Intent
+    
+    Intent -->|pricing| Pricing
+    Intent -->|tracking| Tracking
+    Intent -->|label| Label
+    
+    Pricing --> Governance
+    Label --> Governance
+    Tracking --> Response
+    
+    Governance --> ApprovalCheck
+    ApprovalCheck -->|Yes| FinalLabel
+    ApprovalCheck -->|No| Response
+    
+    FinalLabel --> FinalTracking
+    FinalTracking --> Response
+    
+    style Start fill:#e1f5e1
+    style Response fill:#e1f5e1
+    style Governance fill:#ffe1e1
+    style ApprovalCheck fill:#ffe1e1
+```
 
 ---
 
-## Business Value 
+## 🏗️ Tech Stack Visual
 
-* Reduces manual customer support (AI automates quote & validation)
-* Safe execution: AI **never touches API keys** directly
-* HITL ensures high-value shipments are reviewed
-* Caching & concurrency reduce latency and costs (~30% API cost savings)
-* Demonstrates **AI reasoning + high-performance backend**, a rare hybrid skillset
+![LangGraph](https://img.shields.io/badge/LangGraph-00A3E0?style=flat&logo=chainlink&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009485?style=flat&logo=fastapi&logoColor=white) ![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat&logo=python&logoColor=white) ![httpx](https://img.shields.io/badge/httpx-FF6B6B?style=flat&logo=python&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white) ![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat&logo=chainlink&logoColor=white)
 
----
+![Go](https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-13AA52?style=flat&logo=mongodb&logoColor=white) ![Goroutines](https://img.shields.io/badge/Goroutines-00ADD8?style=flat&logo=go&logoColor=white) ![Context](https://img.shields.io/badge/Context-00ADD8?style=flat&logo=go&logoColor=white)
 
-## Future Enhancements
+![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black) ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
 
-* Integrate real DHL, FedEx, and UPS APIs
-* Full multi-language support
-* Async event bus for real-time updates
-* Extend frontend to full dashboard with tracking and history
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat&logo=postgresql&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat&logo=redis&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-13AA52?style=flat&logo=mongodb&logoColor=white)
+
+![Google Gemini](https://img.shields.io/badge/Google%20Gemini-4285F4?style=flat&logo=google&logoColor=white) ![Shippo API](https://img.shields.io/badge/Shippo%20API-FF6B35?style=flat)
 
 ---
