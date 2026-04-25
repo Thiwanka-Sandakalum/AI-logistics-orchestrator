@@ -1,1 +1,0 @@
-# Prepares pricing requests

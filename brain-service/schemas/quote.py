@@ -1,1 +1,0 @@
-# Quote request/response schema
