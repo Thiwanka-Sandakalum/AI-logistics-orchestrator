@@ -16,7 +16,7 @@
 
 ## Demo Video
 
-[![Watch the Loomis Control Center demo](https://img.youtube.com/vi/cojPs32mkCs/hqdefault.jpg)](https://youtu.be/cojPs32mkCs)
+[![Watch the Loomis Control Center demo](docs/ezgif-5e1bc0b0307b20fb.gif)](https://youtu.be/cojPs32mkCs)
 
 ---
 
@@ -32,8 +32,6 @@ This project consolidates the full operator workflow into one agentic interface:
 - shipment tracking
 - customer snapshot retrieval
 - complaint filing
-
-It pauses only where policy demands review (`create_shipment`, `file_complaint`), then resumes from persisted thread state without losing context.
 
 LangSmith is used to trace end-to-end runs, inspect tool-call sequences, and support latency and evaluation measurements during development.
 
