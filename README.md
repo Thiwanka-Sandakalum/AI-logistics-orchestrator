@@ -175,34 +175,6 @@ Use `docker compose up --build` for containerized startup, or use `langgraph dev
 
 ---
 
-## Project Status
-
-Current maturity: **advanced demo / portfolio-ready**, not full production.
-
-What is implemented:
-
-- core agent workflows
-- HITL approve/edit/reject path
-- persisted thread resumes
-- production-style operator UI patterns
-
-What is not yet complete:
-
-- formal benchmark report checked into repo
-- automated coverage badge and CI quality gate
-- docker-compose one-command full stack bootstrap
-
----
-
-## Roadmap
-
-- [ ] Add benchmark harness and publish p50 latency, cost/run, and HITL trigger rate
-- [ ] Add `docker-compose.yml` for one-command backend + UI + persistence
-- [ ] Add integration test matrix for protected-tool approval paths
-- [ ] Add observability dashboard snapshot and runbook notes
-
----
-
 ## Repository Structure
 
 ```text
