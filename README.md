@@ -1,4 +1,4 @@
-# 🚚 Agentic shipping system that automates quote → booking → tracking workflows with LangGraph supervisor routing and HITL governance
+# 🚚 Agentic shipping system that automates quote → booking → tracking workflows
 
 > AI Logistics Orchestrator is a multi-tool agent system for courier operations with checkpointed resumes, one-click operator UX, and policy-based approvals on sensitive actions.
 
