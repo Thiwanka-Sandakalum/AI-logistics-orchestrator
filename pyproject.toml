@@ -1,0 +1,13 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=68", "wheel"]
+
+[project]
+description = "LangGraph-based logistics orchestration agent"
+name = "ai-logistics-orchestrator"
+requires-python = ">=3.11"
+version = "0.1.0"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+where = ["."]

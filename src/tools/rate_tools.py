@@ -7,7 +7,7 @@ from src.tools.schemas import (
     RateInquiryRequest,
     RateInquiryResponse,
 )
-from src.sqlite_db import get_sqlite_store
+from src.storage.sqlite_db import get_sqlite_store
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +20,11 @@ def get_shipping_quote(
     service_type: str = "ground",
 ) -> dict:
     """
-    Get available shipping rates between two locations.
+    Get shipping rate for a requested service between two locations.
 
-    This tool queries all available carriers and service options for a shipment,
-    returning rates and estimated delivery times. Use this to provide customers
-    with pricing before they commit to creating a shipment.
+    This tool returns a rate for the selected service_type,
+    including carrier and estimated delivery time. Use this to provide
+    customers with pricing before they commit to creating a shipment.
 
     Args:
         origin_zip: 5-digit ZIP code of the origin location
@@ -100,5 +100,5 @@ def get_shipping_quote(
         logger.error("Error getting shipping quote: %s", e)
         return {
             "error": True,
-            "message": f"Could not retrieve rates: {str(e)}",
+            "message": "Could not retrieve rates right now. Please try again shortly.",
         }

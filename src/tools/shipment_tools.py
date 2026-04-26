@@ -10,8 +10,10 @@ from src.tools.schemas import (
     TrackingResponse,
     CreateShipmentRequest,
     CreateShipmentResponse,
+    ShipmentDetailsRequest,
+    ShipmentDetailsResponse,
 )
-from src.sqlite_db import get_sqlite_store
+from src.storage.sqlite_db import get_sqlite_store
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ def track_shipment(tracking_number: str) -> dict:
     and last update time for any shipment in the system.
 
     Args:
-        tracking_number: A 9-digit tracking number (e.g., "123456789")
+        tracking_number: A tracking number (legacy 9-digit or new 10 digits + 3 letters)
 
     Returns:
         A dictionary containing:
@@ -77,7 +79,7 @@ def track_shipment(tracking_number: str) -> dict:
         logger.error("Error tracking shipment %s: %s", tracking_number, e)
         return {
             "error": True,
-            "message": f"Could not track shipment: {str(e)}",
+            "message": "Could not track shipment right now. Please try again shortly.",
         }
 
 
@@ -88,12 +90,17 @@ def create_shipment(
     sender_city: str,
     sender_state: str,
     sender_zip: str,
+    sender_phone: str,
     recipient_name: str,
     recipient_address: str,
     recipient_city: str,
     recipient_state: str,
     recipient_zip: str,
+    recipient_phone: str,
     weight_lbs: float,
+    selected_carrier: str,
+    quoted_service_type: str,
+    quoted_total_cost: float,
     service_type: str = "ground",
     description: Optional[str] = None,
 ) -> dict:
@@ -111,18 +118,23 @@ def create_shipment(
         sender_city: City of the sender
         sender_state: 2-letter state code (e.g., "CA")
         sender_zip: 5-digit ZIP code of the sender
+        sender_phone: Sender phone number (required)
         recipient_name: Full name of the recipient
         recipient_address: Street address of the recipient
         recipient_city: City of the recipient
         recipient_state: 2-letter state code (e.g., "NY")
         recipient_zip: 5-digit ZIP code of the recipient
+        recipient_phone: Recipient phone number (required)
         weight_lbs: Package weight in pounds (must be > 0)
         service_type: One of "ground", "express", "priority", or "overnight" (default: "ground")
+        selected_carrier: Carrier chosen in quote step to enforce consistency
+        quoted_service_type: Service type accepted in quote step to enforce consistency
+        quoted_total_cost: Quoted total cost accepted in quote step to enforce consistency
         description: Description of package contents (optional)
 
     Returns:
         A dictionary containing:
-        - tracking_number: 9-digit tracking number for the shipment
+        - tracking_number: Tracking number for the shipment
         - estimated_delivery: Expected delivery date
         - total_cost: Cost of the shipment
         - confirmation_id: Reference ID for this transaction
@@ -152,13 +164,18 @@ def create_shipment(
             sender_city=sender_city,
             sender_state=sender_state,
             sender_zip=sender_zip,
+            sender_phone=sender_phone,
             recipient_name=recipient_name,
             recipient_address=recipient_address,
             recipient_city=recipient_city,
             recipient_state=recipient_state,
             recipient_zip=recipient_zip,
+            recipient_phone=recipient_phone,
             weight_lbs=weight_lbs,
             service_type=service_type,
+            selected_carrier=selected_carrier,
+            quoted_service_type=quoted_service_type,
+            quoted_total_cost=quoted_total_cost,
             description=description,
         )
 
@@ -186,5 +203,50 @@ def create_shipment(
         logger.error("Error creating shipment: %s", e)
         return {
             "error": True,
-            "message": f"Could not create shipment: {str(e)}",
+            "message": "Could not create shipment right now. Please try again shortly.",
+        }
+
+
+@tool(args_schema=ShipmentDetailsRequest)
+def get_shipment_details(confirmation_id: str, phone_number: str) -> dict:
+    """
+    Get full shipment details after verification with confirmation ID and phone.
+
+    This tool returns sender and recipient details only when the provided
+    confirmation ID matches a shipment and the phone number matches either
+    the sender or recipient phone used during booking.
+    """
+    try:
+        request = ShipmentDetailsRequest(
+            confirmation_id=confirmation_id,
+            phone_number=phone_number,
+        )
+
+        store = get_sqlite_store()
+        response_data = store.get_shipment_details(
+            confirmation_id=request.confirmation_id,
+            phone_number=request.phone_number,
+        )
+
+        response = ShipmentDetailsResponse(**response_data)
+        logger.info("Verified shipment details access for confirmation_id: %s", confirmation_id)
+        return response.model_dump()
+
+    except ValidationError as e:
+        logger.warning("Validation error for get_shipment_details: %s", e)
+        return {
+            "error": True,
+            "message": f"Invalid verification input: {str(e)}",
+        }
+    except ValueError as e:
+        logger.warning("Verification failed for get_shipment_details: %s", e)
+        return {
+            "error": True,
+            "message": str(e),
+        }
+    except Exception as e:
+        logger.error("Error retrieving verified shipment details: %s", e)
+        return {
+            "error": True,
+            "message": "Could not retrieve shipment details right now. Please try again shortly.",
         }

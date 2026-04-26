@@ -8,7 +8,7 @@ These schemas define strict contracts for:
 
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # ============================================================================
@@ -23,8 +23,8 @@ class TrackingRequest(BaseModel):
 
     tracking_number: str = Field(
         ...,
-        description="9-digit tracking number (e.g., 123456789)",
-        pattern=r"^\d{9}$",
+        description="Tracking number (legacy 9-digit or new 10 digits + 3 letters)",
+        pattern=r"^(\d{9}|\d{10}[A-Z]{3})$",
     )
 
 
@@ -178,21 +178,63 @@ class CreateShipmentRequest(BaseModel):
     sender_city: str = Field(..., min_length=1, max_length=50)
     sender_state: str = Field(..., pattern=r"^[A-Z]{2}$")
     sender_zip: str = Field(..., pattern=r"^\d{5}$")
+    sender_phone: str = Field(
+        ...,
+        pattern=r"^\+?[0-9\-\s()]{10,20}$",
+        description="Sender phone number (required for shipment verification)",
+    )
     recipient_name: str = Field(..., min_length=1, max_length=100)
     recipient_address: str = Field(..., min_length=5, max_length=100)
     recipient_city: str = Field(..., min_length=1, max_length=50)
     recipient_state: str = Field(..., pattern=r"^[A-Z]{2}$")
     recipient_zip: str = Field(..., pattern=r"^\d{5}$")
+    recipient_phone: str = Field(
+        ...,
+        pattern=r"^\+?[0-9\-\s()]{10,20}$",
+        description="Recipient phone number (required for shipment verification)",
+    )
     weight_lbs: float = Field(..., gt=0, description="Weight in pounds")
     service_type: str = Field(
         default="ground",
         pattern=r"^(ground|express|priority|overnight)$",
+    )
+    selected_carrier: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Carrier selected by the user from the accepted quote (required consistency lock)",
+    )
+    quoted_service_type: str = Field(
+        ...,
+        pattern=r"^(ground|express|priority|overnight)$",
+        description="Service type shown in the accepted quote (required consistency lock)",
+    )
+    quoted_total_cost: float = Field(
+        ...,
+        gt=0,
+        description="Quoted total cost accepted by the user (required consistency lock)",
     )
     description: Optional[str] = Field(
         None,
         max_length=500,
         description="Package contents description",
     )
+
+    @field_validator("sender_address", "recipient_address")
+    @classmethod
+    def validate_address_text(cls, value: str) -> str:
+        lowered = value.lower()
+        if "http://" in lowered or "https://" in lowered or "www." in lowered:
+            raise ValueError("Address must not contain URLs")
+        return value
+
+    @model_validator(mode="after")
+    def validate_quote_service_match(self) -> "CreateShipmentRequest":
+        if self.quoted_service_type != self.service_type:
+            raise ValueError(
+                "quoted_service_type must match service_type to preserve quote-to-book consistency"
+            )
+        return self
 
 
 class CreateShipmentResponse(BaseModel):
@@ -203,6 +245,41 @@ class CreateShipmentResponse(BaseModel):
     total_cost: float
     confirmation_id: str
     carrier: Optional[str] = None
+
+
+class ShipmentDetailsRequest(BaseModel):
+    """Input schema for verified shipment details lookup."""
+
+    confirmation_id: str = Field(
+        ...,
+        pattern=r"^CONF-[A-Z0-9]{10}$",
+        description="Confirmation ID for the shipment",
+    )
+    phone_number: str = Field(
+        ...,
+        pattern=r"^\+?[0-9\-\s()]{10,20}$",
+        description="Sender or recipient phone number used at booking",
+    )
+
+
+class ShipmentDetailsResponse(BaseModel):
+    """Response schema for verified shipment details lookup."""
+
+    tracking_number: str
+    confirmation_id: str
+    status: str
+    carrier: Optional[str] = None
+    estimated_delivery: Optional[str] = None
+    sender_name: str
+    sender_address: str
+    sender_city: str
+    sender_state: str
+    sender_zip: str
+    recipient_name: str
+    recipient_address: str
+    recipient_city: str
+    recipient_state: str
+    recipient_zip: str
 
 
 # ============================================================================
@@ -227,8 +304,8 @@ class ComplaintRequest(BaseModel):
 
     tracking_number: str = Field(
         ...,
-        description="9-digit tracking number",
-        pattern=r"^\d{9}$",
+        description="Tracking number (legacy 9-digit or new 10 digits + 3 letters)",
+        pattern=r"^(\d{9}|\d{10}[A-Z]{3})$",
     )
     issue_type: str = Field(
         ...,

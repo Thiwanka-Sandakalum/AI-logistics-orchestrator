@@ -26,7 +26,7 @@ def calculate_distance_and_rates(
     Calculate realistic shipping distance, zones, and multi-service rates.
 
     This tool estimates distance using US ZIP code zones and calculates
-    realistic FedEx-aligned rates based on multiple factors: weight, distance,
+    realistic Loomis-aligned rates based on multiple factors: weight, distance,
     dimensional weight, service type, and surcharges (fuel, residential, oversize).
 
     Args:
@@ -42,7 +42,7 @@ def calculate_distance_and_rates(
         A dictionary containing:
         - distance_info: Estimated distance, zone, and zone name
         - service_rates: List of available services with costs
-            - service_name: e.g., "FedEx Ground"
+            - service_name: e.g., "Loomis Ground"
             - service_type: ground, express, priority, overnight
             - base_rate: Service base cost
             - zone_surcharge: Distance-based surcharge
@@ -70,7 +70,7 @@ def calculate_distance_and_rates(
             },
             "service_rates": [
                 {
-                    "service_name": "FedEx Ground",
+                    "service_name": "Loomis Ground",
                     "total_cost": 42.75,
                     "delivery_days": 5,
                     ...

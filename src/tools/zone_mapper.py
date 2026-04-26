@@ -1,4 +1,4 @@
-"""US zone mapping for FedEx-like distance-based pricing."""
+"""US zone mapping for Loomis-like distance-based pricing."""
 
 from functools import cache
 from typing import Tuple
@@ -7,7 +7,7 @@ from typing import Tuple
 class ZoneMapper:
     """Map US ZIP codes to delivery zones based on distance."""
 
-    # FedEx uses 8 zones (1-8), where 1 is same/adjacent and 8 is cross-country max
+    # Loomis uses 8 zones (1-8), where 1 is same/adjacent and 8 is cross-country max
     # Simplified: Zone is based on ZIP prefix distance
     # Format: (origin_zip_prefix, destination_zip_prefix) -> zone
 
@@ -47,7 +47,7 @@ class ZoneMapper:
 
     def distance_zone(self, origin_zip: str, destination_zip: str) -> int:
         """
-        Calculate FedEx-like zone (1-8) based on ZIP code regions.
+        Calculate Loomis-like zone (1-8) based on ZIP code regions.
 
         Zone 1: Same region (local)
         Zone 2: Adjacent region

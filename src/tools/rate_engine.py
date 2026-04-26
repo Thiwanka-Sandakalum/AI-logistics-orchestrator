@@ -1,4 +1,4 @@
-"""Realistic multi-factor rate engine based on FedEx pricing structure."""
+"""Realistic multi-factor rate engine based on Loomis pricing structure."""
 
 import logging
 from functools import cache
@@ -31,28 +31,28 @@ class ServiceOption:
         self.delivery_days = delivery_days
 
 
-# FedEx-aligned service options
+# Loomis-aligned service options
 SERVICES = {
     "ground": ServiceOption(
-        name="FedEx Ground",
+        name="Loomis Ground",
         service_type="ground",
         base_rate=8.50,
         delivery_days=5,
     ),
     "priority": ServiceOption(
-        name="FedEx Priority Overnight",
+        name="Loomis Priority",
         service_type="priority",
         base_rate=24.00,
         delivery_days=2,
     ),
     "express": ServiceOption(
-        name="FedEx 2Day",
+        name="Loomis 2Day",
         service_type="express",
         base_rate=16.50,
         delivery_days=2,
     ),
     "overnight": ServiceOption(
-        name="FedEx Overnight",
+        name="Loomis Express",
         service_type="overnight",
         base_rate=45.00,
         delivery_days=1,

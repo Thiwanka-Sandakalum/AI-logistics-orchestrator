@@ -7,7 +7,7 @@ from src.tools.schemas import (
     CustomerLookupRequest,
     CustomerLookupResponse,
 )
-from src.sqlite_db import get_sqlite_store
+from src.storage.sqlite_db import get_sqlite_store
 
 logger = logging.getLogger(__name__)
 
@@ -88,5 +88,5 @@ def lookup_customer(phone_or_email: str) -> dict:
         logger.error("Error looking up customer: %s", e)
         return {
             "error": True,
-            "message": f"Could not find customer: {str(e)}",
+            "message": "Could not complete customer lookup right now. Please try again shortly.",
         }

@@ -5,7 +5,7 @@ from typing import NamedTuple, Optional
 
 
 class BoxSize(Enum):
-    """Standard FedEx-like box sizes."""
+    """Standard Loomis box sizes."""
     ENVELOPE = "envelope"
     SMALL = "small"
     MEDIUM = "medium"
@@ -35,12 +35,12 @@ class PackageType(NamedTuple):
     size: BoxSize
     dimensions: BoxDimensions
     max_weight_lbs: float
-    dim_weight_divisor: int  # 139 for FedEx, 166 for UPS
+    dim_weight_divisor: int  # 139 standard divisor, 166 for some carriers
     is_oversize: bool
     base_surcharge: float  # Additional charge for this box type
 
 
-# FedEx-aligned standard packages
+# Loomis-aligned standard packages
 BOX_CATALOG = {
     BoxSize.ENVELOPE: PackageType(
         size=BoxSize.ENVELOPE,
@@ -91,13 +91,13 @@ def calculate_dimensional_weight(
     """
     Calculate dimensional (billable) weight.
     
-    FedEx uses divisor of 139 cubic inches per pound.
+    Loomis uses divisor of 139 cubic inches per pound.
     
     Args:
         length: Length in inches
         width: Width in inches
         height: Height in inches
-        divisor: Cubic inches per pound (default 139 for FedEx)
+        divisor: Cubic inches per pound (default 139 for Loomis)
     
     Returns:
         Dimensional weight in pounds

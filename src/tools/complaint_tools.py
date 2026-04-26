@@ -9,7 +9,7 @@ from src.tools.schemas import (
     ComplaintRequest,
     ComplaintResponse,
 )
-from src.sqlite_db import get_sqlite_store
+from src.storage.sqlite_db import get_sqlite_store
 
 logger = logging.getLogger(__name__)
 
@@ -100,5 +100,5 @@ def file_complaint(
         logger.error("Error filing complaint: %s", e)
         return {
             "error": True,
-            "message": f"Could not file complaint: {str(e)}",
+            "message": "Could not file complaint right now. Please try again shortly.",
         }

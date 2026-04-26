@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from functools import cache
-import random
+import secrets
 import sqlite3
 import string
 import threading
@@ -56,6 +56,7 @@ class SQLiteDataStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._init_schema()
+        self._ensure_shipments_columns()
         self._seed_if_empty()
 
     def _init_schema(self) -> None:
@@ -82,11 +83,13 @@ class SQLiteDataStore:
                     sender_city TEXT NOT NULL,
                     sender_state TEXT NOT NULL,
                     sender_zip TEXT NOT NULL,
+                    sender_phone TEXT,
                     recipient_name TEXT NOT NULL,
                     recipient_address TEXT NOT NULL,
                     recipient_city TEXT NOT NULL,
                     recipient_state TEXT NOT NULL,
                     recipient_zip TEXT NOT NULL,
+                    recipient_phone TEXT,
                     weight_lbs REAL NOT NULL,
                     service_type TEXT NOT NULL,
                     description TEXT,
@@ -144,6 +147,12 @@ class SQLiteDataStore:
             )
             cur.execute(
                 """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_shipments_confirmation_id
+                ON shipments(confirmation_id)
+                """
+            )
+            cur.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_customers_email
                 ON customers(email)
                 """
@@ -156,8 +165,55 @@ class SQLiteDataStore:
             )
             self._conn.commit()
 
+    def _ensure_shipments_columns(self) -> None:
+        """Backfill new shipments columns and constraints for existing databases."""
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute("PRAGMA table_info(shipments)")
+            columns = {row[1] for row in cur.fetchall()}
+            if "sender_phone" not in columns:
+                cur.execute("ALTER TABLE shipments ADD COLUMN sender_phone TEXT")
+            if "recipient_phone" not in columns:
+                cur.execute("ALTER TABLE shipments ADD COLUMN recipient_phone TEXT")
+
+            # Guard against ambiguous verification lookups before enforcing uniqueness.
+            cur.execute(
+                """
+                SELECT confirmation_id, COUNT(*) AS cnt
+                FROM shipments
+                GROUP BY confirmation_id
+                HAVING COUNT(*) > 1
+                LIMIT 1
+                """
+            )
+            duplicate = cur.fetchone()
+            if duplicate is not None:
+                raise ValueError(
+                    "Cannot enforce unique confirmation_id index due to duplicate values in shipments table."
+                )
+
+            cur.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_shipments_confirmation_id
+                ON shipments(confirmation_id)
+                """
+            )
+            self._conn.commit()
+
     def _seed_if_empty(self) -> None:
-        self.seed_demo_data(force=False)
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.executemany(
+                """
+                INSERT OR IGNORE INTO rate_cards (service_type, base_cost, per_lb, estimated_delivery_days, carrier)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                DEFAULT_RATE_CARDS,
+            )
+            self._conn.commit()
+
+        if settings.seed_demo_data:
+            self.seed_demo_data(force=False)
 
     def seed_demo_data(self, force: bool = False) -> Dict[str, int]:
         """
@@ -211,11 +267,13 @@ class SQLiteDataStore:
                         "Los Angeles",
                         "CA",
                         "90210",
+                        "5551234567",
                         "John Doe",
                         "22 Market St",
                         "New York",
                         "NY",
                         "10001",
+                        "5551234567",
                         4.2,
                         "ground",
                         "Books",
@@ -236,11 +294,13 @@ class SQLiteDataStore:
                         "Austin",
                         "TX",
                         "73301",
+                        "5559876543",
                         "Jane Smith",
                         "5 Cedar Ave",
                         "Seattle",
                         "WA",
                         "98101",
+                        "5559876543",
                         2.5,
                         "priority",
                         "Documents",
@@ -258,13 +318,13 @@ class SQLiteDataStore:
                     """
                     INSERT INTO shipments (
                         tracking_number, customer_id,
-                        sender_name, sender_address, sender_city, sender_state, sender_zip,
-                        recipient_name, recipient_address, recipient_city, recipient_state, recipient_zip,
+                        sender_name, sender_address, sender_city, sender_state, sender_zip, sender_phone,
+                        recipient_name, recipient_address, recipient_city, recipient_state, recipient_zip, recipient_phone,
                         weight_lbs, service_type, description,
                         status, current_location, estimated_delivery, last_update, carrier,
                         total_cost, confirmation_id, created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     seed_shipments,
                 )
@@ -281,7 +341,9 @@ class SQLiteDataStore:
         with self._lock:
             cur = self._conn.cursor()
             while True:
-                candidate = "".join(random.choices(string.digits, k=9))
+                numeric_part = "".join(secrets.choice(string.digits) for _ in range(10))
+                suffix = "".join(secrets.choice(string.ascii_uppercase) for _ in range(3))
+                candidate = f"{numeric_part}{suffix}"
                 cur.execute(
                     "SELECT 1 FROM shipments WHERE tracking_number = ?",
                     (candidate,),
@@ -357,6 +419,37 @@ class SQLiteDataStore:
             raise ValueError(f"No rates available for service type: {service_type}")
 
         selected_rate = rates["rates"][0]
+
+        required_quote_fields = ("selected_carrier", "quoted_service_type", "quoted_total_cost")
+        missing_quote_fields = [field for field in required_quote_fields if payload.get(field) is None]
+        if missing_quote_fields:
+            raise ValueError(
+                "Missing required quote consistency fields: " + ", ".join(missing_quote_fields)
+            )
+
+        expected_carrier = payload.get("selected_carrier")
+        actual_carrier = selected_rate.get("carrier")
+        if (
+            expected_carrier
+            and actual_carrier
+            and actual_carrier.strip().lower() != expected_carrier.strip().lower()
+        ):
+            raise ValueError(
+                f"Selected carrier mismatch. Expected '{expected_carrier}', got '{actual_carrier}'."
+            )
+
+        quoted_service_type = payload.get("quoted_service_type")
+        if quoted_service_type and quoted_service_type != service_type:
+            raise ValueError(
+                f"Quoted service mismatch. Expected '{quoted_service_type}', got '{service_type}'."
+            )
+
+        quoted_total_cost = payload.get("quoted_total_cost")
+        if quoted_total_cost is not None and abs(float(quoted_total_cost) - float(selected_rate["cost"])) > 0.01:
+            raise ValueError(
+                f"Quoted price changed from {quoted_total_cost} to {selected_rate['cost']}. Please reconfirm."
+            )
+
         estimated_delivery = (
             datetime.now(timezone.utc) + timedelta(days=selected_rate["estimated_delivery_days"])
         ).date().isoformat()
@@ -367,13 +460,13 @@ class SQLiteDataStore:
                 """
                 INSERT INTO shipments (
                     tracking_number, customer_id,
-                    sender_name, sender_address, sender_city, sender_state, sender_zip,
-                    recipient_name, recipient_address, recipient_city, recipient_state, recipient_zip,
+                    sender_name, sender_address, sender_city, sender_state, sender_zip, sender_phone,
+                    recipient_name, recipient_address, recipient_city, recipient_state, recipient_zip, recipient_phone,
                     weight_lbs, service_type, description,
                     status, current_location, estimated_delivery, last_update, carrier,
                     total_cost, confirmation_id, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     tracking_number,
@@ -383,11 +476,13 @@ class SQLiteDataStore:
                     payload["sender_city"],
                     payload["sender_state"],
                     payload["sender_zip"],
+                    payload["sender_phone"],
                     payload["recipient_name"],
                     payload["recipient_address"],
                     payload["recipient_city"],
                     payload["recipient_state"],
                     payload["recipient_zip"],
+                    payload["recipient_phone"],
                     payload["weight_lbs"],
                     service_type,
                     payload.get("description"),
@@ -410,6 +505,54 @@ class SQLiteDataStore:
             "confirmation_id": confirmation_id,
             "carrier": selected_rate.get("carrier"),
         }
+
+    def get_shipment_details(self, confirmation_id: str, phone_number: str) -> Dict[str, Any]:
+        normalized_phone = "".join(ch for ch in phone_number if ch.isdigit())
+        if not normalized_phone:
+            raise ValueError("Phone number is required for verification.")
+
+        with self._lock:
+            cur = self._conn.cursor()
+            cur.execute(
+                """
+                SELECT
+                    tracking_number,
+                    confirmation_id,
+                    status,
+                    carrier,
+                    estimated_delivery,
+                    sender_name,
+                    sender_address,
+                    sender_city,
+                    sender_state,
+                    sender_zip,
+                    recipient_name,
+                    recipient_address,
+                    recipient_city,
+                    recipient_state,
+                    recipient_zip,
+                    sender_phone,
+                    recipient_phone
+                FROM shipments
+                WHERE confirmation_id = ?
+                LIMIT 1
+                """,
+                (confirmation_id.upper(),),
+            )
+            row = cur.fetchone()
+
+        if row is None:
+            raise ValueError("Verification failed. Please check confirmation ID and phone number.")
+
+        sender_phone = "".join(ch for ch in (row["sender_phone"] or "") if ch.isdigit())
+        recipient_phone = "".join(ch for ch in (row["recipient_phone"] or "") if ch.isdigit())
+        if normalized_phone not in {sender_phone, recipient_phone}:
+            raise ValueError("Verification failed. Please check confirmation ID and phone number.")
+
+        details = dict(row)
+        details.pop("sender_phone", None)
+        details.pop("recipient_phone", None)
+        return details
 
     def file_complaint(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
