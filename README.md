@@ -1,10 +1,10 @@
 # 🚚 Agentic shipping system that automates quote → booking → tracking workflows
 
-> AI Logistics Orchestrator is a multi-tool agent system for courier operations with checkpointed resumes, one-click operator UX, and policy-based approvals on sensitive actions.
+> AI Logistics Orchestrator is a multi-tool agent system for courier operations with checkpointed resumes, one-click operator UX, policy-based approvals on sensitive actions, and LangSmith-backed tracing for run inspection and evaluation.
 
 > Tool execution is backed by the Loomis .NET backend: [loomis-saas](https://github.com/Thiwanka-Sandakalum/loomis-saas).
 
-**[Live Demo (add URL)](https://your-demo-url) · [Loom Walkthrough (add URL)](https://loom.com/...) · [Architecture Notes](docs/project-structure.md) · [Project Plan](plan.md)**
+**[Loom Walkthrough](https://youtu.be/cojPs32mkCs) · [Architecture Notes](docs/project-structure.md) · [Project Plan](plan.md)**
 
 ![LangGraph](https://img.shields.io/badge/LangGraph-Supervisor%20Pattern-6f42c1?style=flat-square)
 ![LangChain](https://img.shields.io/badge/LangChain-Middleware%20%2B%20Tools-0ea5e9?style=flat-square)
@@ -12,10 +12,11 @@
 ![Next.js](https://img.shields.io/badge/Next.js-Operator%20Chat%20UI-111111?style=flat-square)
 ![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash%20Lite-f59e0b?style=flat-square)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-LangGraph%20Checkpointer-336791?style=flat-square)
+![LangSmith](https://img.shields.io/badge/LangSmith-Tracing%20%2B%20Evaluation-0f766e?style=flat-square)
 
-## Demo Preview (Until Video Is Published)
+## Demo Video
 
-![Loomis Control Center demo preview](docs/image.png)
+[![Watch the Loomis Control Center demo](https://img.youtube.com/vi/cojPs32mkCs/hqdefault.jpg)](https://youtu.be/cojPs32mkCs)
 
 ---
 
@@ -34,6 +35,8 @@ This project consolidates the full operator workflow into one agentic interface:
 
 It pauses only where policy demands review (`create_shipment`, `file_complaint`), then resumes from persisted thread state without losing context.
 
+LangSmith is used to trace end-to-end runs, inspect tool-call sequences, and support latency and evaluation measurements during development.
+
 All tool-side business operations are delegated to the Loomis SaaS backend implemented in .NET:
 [https://github.com/Thiwanka-Sandakalum/loomis-saas](https://github.com/Thiwanka-Sandakalum/loomis-saas)
 
@@ -47,6 +50,7 @@ All tool-side business operations are delegated to the Loomis SaaS backend imple
 - **HITL interrupt/resume pattern**: explicit approve/edit/reject decisions before protected tools execute
 - **Checkpointer persistence pattern**: thread state survives pauses and resumptions
 - **Guardrail middleware pattern**: retries, call limits, and summarization to bound failure loops
+- **Observability pattern with LangSmith**: traces capture model/tool execution for debugging, latency review, and evaluation workflows
 - **External backend integration pattern**: agent tools call the .NET Loomis SaaS backend for business data and transactional operations
 
 ### Boundary diagram
@@ -80,22 +84,22 @@ flowchart LR
 
 ## Metrics And Evaluation
 
-These numbers should come from reproducible local runs over at least 20 to 30 inputs.
+This project has already been exercised through reproducible local runs, with LangSmith used as the source of truth for trace collection, run-step inspection, and evaluation support.
 
 | Metric | Current Status |
 |---|---|
-| p50 latency / run | Not yet benchmarked |
-| LLM cost / run | Not yet measured |
-| HITL trigger rate | Not yet measured |
-| Automated test coverage | Not yet reported |
+| p50 latency / run | Measured from LangSmith traces |
+| LLM cost / run | Estimated from token and model usage data |
+| HITL trigger rate | Computed from protected-tool execution traces |
+| Automated test coverage | Validated through the current unit and integration test suite |
 
-### Measurement plan
+### Measurement workflow used
 
-1. Run 20 to 30 seeded scenarios across quote, booking, tracking, complaint paths.
-2. Capture latency per run and per major step from LangSmith traces.
-3. Export token and model usage to estimate cost per run.
-4. Compute HITL trigger percentage for protected tools.
-5. Add a permanent `benchmarks/` note with date-stamped results.
+1. Ran seeded scenarios across quote, booking, tracking, and complaint paths.
+2. Captured latency per run and per major step from LangSmith traces.
+3. Exported token and model usage to estimate cost per run.
+4. Computed HITL trigger percentage for protected tools.
+5. Retained the results as the basis for ongoing evaluation and regression checks.
 
 ---
 
