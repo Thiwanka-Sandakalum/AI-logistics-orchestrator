@@ -52,32 +52,7 @@ All tool-side business operations are delegated to the Loomis SaaS backend imple
 - **External backend integration pattern**: agent tools call the .NET Loomis SaaS backend for business data and transactional operations
 
 ### Boundary diagram
-
-```mermaid
-flowchart LR
-	subgraph ClientBoundary[Client Boundary]
-		U[Operator] --> UI[Loomis Control Center\nNext.js UI]
-	end
-
-	subgraph AgentBoundary[Agent Runtime Boundary]
-		UI --> API[LangGraph API\nagent graph]
-		API --> SUP[Supervisor Node\nModel + Middleware]
-		SUP --> QT[Quote Tools]
-		SUP --> ST[Shipment Tools]
-		SUP --> TT[Tracking Tools]
-		SUP --> CT[Customer + Complaint Tools]
-		QT --> BFF[.NET Loomis SaaS Backend]
-		ST --> BFF
-		TT --> BFF
-		CT --> BFF
-		SUP --> HITL{Approval Required?}
-		HITL -->|Yes| HR[Human Review\napprove/edit/reject]
-		HITL -->|No| RUN[Execute Tool]
-		HR --> RUN
-		RUN --> CKPT[(Checkpointed Thread State\nPostgreSQL)]
-	end
-```
-
+![alt text](<docs/Boundary diagram.png>)
 ---
 
 ## Metrics And Evaluation
